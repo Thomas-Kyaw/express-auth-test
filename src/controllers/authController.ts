@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { validationResult } from 'express-validator';
 import User from '../models/user';
 import { config } from '../config/config';
@@ -40,7 +40,16 @@ export const login = async (req: Request, res: Response) => {
       return;
     }
 
-    const token = jwt.sign({ id: user._id, role: user.role }, config.jwtSecret, { expiresIn: '1h' });
+    const secret = config.jwtSecret
+    if (!secret) {
+        throw new Error("JWT_SECRET environment variable is not defined");
+    }
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      secret,
+      { expiresIn: (process.env.JWT_EXPIRES_IN || "1d") as Exclude<SignOptions['expiresIn'], undefined> });
+
     res.status(200).json({ token, message: 'Logged in successfully' });
   } catch (err: any) {
     res.status(500).json({ message: 'Error logging in', error: err.message });
